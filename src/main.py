@@ -79,4 +79,3 @@ if __name__ == "__main__":
     print(category2.products)
     print(Category.get_total_categories())
     print(Category.get_total_products())
-
