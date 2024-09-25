@@ -46,6 +46,3 @@ def other_category():
 
 def test_category_count_increment(other_category):
     assert Category.get_total_categories() == 4
-
-
-
