@@ -25,14 +25,14 @@ def test_product_creation(product1):
     assert product1.quantity == 5
 
 
-def test_product_count(category):
-    assert Category.get_total_products() == 2
-
-
 def test_category_creation(category):
     assert category.name == "Category1"
     assert category.description == "Description1"
     assert len(category.products) == 2
+
+
+def test_product_count(category):
+    assert Category.get_total_products() == 2
 
 
 def test_category_count(category):
