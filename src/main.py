@@ -2,22 +2,23 @@ from _pytest import warnings
 
 
 class Product:
-    def __init__(self, name: str, description: str, price: float, quantity: int):
+    def __init__(self, name, description, price, quantity):
         self.name = name
         self.description = description
-        self._price = price
+        self.__price = price
         self.quantity = quantity
+
 
     @property
     def price(self):
-        return self._price
+        return self.__price
 
     @price.setter
     def price(self, new_price: float):
         if new_price <= 0:
             warnings.warn("Цена не должна быть нулевая или отрицательная", UserWarning)
         else:
-            self._price = new_price
+            self.__price = new_price
 
     @classmethod
     def new_product(cls, product_data: dict) -> 'Product':
@@ -32,9 +33,9 @@ class Product:
         return f"{self.name}, {self.price} руб. Остаток: {self.quantity} шт."
 
     def __add__(self, other):
-        if not isinstance(other, Product):
-            raise TypeError("Can only add Product objects")
-        return self.price + other.price
+        if isinstance(other, Product):
+            return (self.price * self.quantity) + (other.price * other.quantity)
+        return NotImplemented
 
 
 class Category:
