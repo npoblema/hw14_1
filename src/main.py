@@ -1,13 +1,11 @@
 from _pytest import warnings
 
-
 class Product:
     def __init__(self, name, description, price, quantity):
         self.name = name
         self.description = description
-        self.__price = price
+        self.price = price
         self.quantity = quantity
-
 
     @property
     def price(self):
@@ -37,6 +35,20 @@ class Product:
             return (self.price * self.quantity) + (other.price * other.quantity)
         return NotImplemented
 
+class Smartphone(Product):
+    def __init__(self, name, description, price, quantity, efficiency, model, memory, color):
+        super().__init__(name, description, price, quantity)
+        self.efficiency = efficiency
+        self.model = model
+        self.memory = memory
+        self.color = color
+
+class LawnGrass(Product):
+    def __init__(self, name, description, price, quantity, country, germination_period, color):
+        super().__init__(name, description, price, quantity)
+        self.country = country
+        self.germination_period = germination_period
+        self.color = color
 
 class Category:
     total_categories = 0
@@ -62,7 +74,9 @@ class Category:
     def get_total_products():
         return Category.total_products
 
-    def add_product(self, product: Product):
+    def add_product(self, product):
+        if not isinstance(product, Product) or not issubclass(type(product), Product):
+            raise TypeError("Only Product objects or its subclasses can be added")
         self._products.append(product)
         Category.total_products += 1
 
@@ -71,7 +85,7 @@ class Category:
         return "\n".join(str(product) for product in self._products)
 
     def __str__(self):
-        return f"{self.name}, количество продуктов: {Category.total_products} шт."
+        return f"{self.name}, количество продуктов: {len(self._products)} шт."
 
     def __add__(self, other):
         if not isinstance(other, Category):
@@ -85,24 +99,29 @@ class Category:
 
 
 if __name__ == '__main__':
-    product1 = Product("Samsung Galaxy S23 Ultra", "256GB, Серый цвет, 200MP камера", 180000.0, 5)
-    product2 = Product("Iphone 15", "512GB, Gray space", 210000.0, 8)
-    product3 = Product("Xiaomi Redmi Note 11", "1024GB, Синий", 31000.0, 14)
+    smartphone1 = Smartphone("Samsung Galaxy S23 Ultra", "256GB, Серый цвет, 200MP камера", 180000.0, 5, "High", "S23 Ultra", "256GB", "Gray")
+    smartphone2 = Smartphone("Iphone 15", "512GB, Gray space", 210000.0, 8, "Very High", "15 Pro Max", "512GB", "Space Gray")
+    smartphone3 = Smartphone("Xiaomi Redmi Note 11", "1024GB, Синий", 31000.0, 14, "Medium", "Note 11 Pro", "1024GB", "Blue")
 
-    print(str(product1))
-    print(str(product2))
-    print(str(product3))
+    lawn_grass1 = LawnGrass("Газонная трава 'Изумруд'", "Для газонов", 100.0, 10, "Россия", 7, "Зеленый")
+    lawn_grass2 = LawnGrass("Газонная трава 'Росинка'", "Для газонов", 150.0, 5, "Россия", 10, "Зеленый")
 
-    category1 = Category(
-        "Смартфоны",
-        "Смартфоны, как средство не только коммуникации, но и получения дополнительных функций для удобства жизни",
-        [product1, product2, product3]
-    )
+    category_smartphones = Category("Смартфоны", "Смартфоны, как средство не только коммуникации, но и получения дополнительных функций для удобства жизни", [smartphone1, smartphone2, smartphone3])
+    category_lawn_grass = Category("Газонная трава", "Газонная трава для красивого газона", [lawn_grass1, lawn_grass2])
 
-    print(str(category1))
+    print(category_smartphones.products)
+    print(category_lawn_grass.products)
 
-    print(category1.products)
+    print(category_smartphones + category_lawn_grass)
 
-    print(product1 + product2)
-    print(product1 + product3)
-    print(product2 + product3)
+    try:
+        result_smartphone = smartphone1 + smartphone2
+        print(f"Сложение смартфонов: {result_smartphone}")
+    except TypeError as e:
+        print(f"Ошибка сложения: {e}")
+
+    try:
+        result_mixed = smartphone1 + lawn_grass1
+        print(f"Сложение смартфона и травы: {result_mixed}")
+    except TypeError as e:
+        print(f"Ошибка сложения: {e}")
