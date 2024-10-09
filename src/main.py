@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 
-class AbstractProduct(ABC):
+class BaseProduct(ABC):
     @abstractmethod
     def __init__(self, name, description, price, quantity):
         self.name = name
@@ -20,7 +20,7 @@ class LoggerMixin:
         print(f"Создан объект класса {self.__class__.__name__} с параметрами: {args}")
 
 
-class Product(LoggerMixin, AbstractProduct):
+class Product(LoggerMixin, BaseProduct):
     product_count = 0
 
     def __init__(self, name, description, price, quantity):
