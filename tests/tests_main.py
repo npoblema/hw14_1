@@ -75,3 +75,7 @@ def test_product_category_middle_price():
     category.add_product(smartphone1)
     category.add_product(smartphone2)
     assert category.middle_price() == 195000.0
+
+
+if __name__ == "__main__":
+    pytest.main(["--cov=src", "--cov-report=term-missing"])
