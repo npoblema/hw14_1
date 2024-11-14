@@ -1,160 +1,109 @@
-from abc import ABC, abstractmethod
+from src.api import HeadHunterAPI
+from src.vacancy import Vacancy
+from src.manager import JSONSaver
 
 
-class BaseProduct(ABC):
-    def __init__(self, name: str, description: str, price: float, quantity: int):
-        if quantity == 0:
-            raise ValueError("Товар с нулевым количеством не может быть добавлен")
-        self.name = name
-        self.description = description
-        self._price = price
-        self.quantity = quantity
+def user_interaction():
+    # Инициализируем объекты для работы с API и файлами
+    hh_api = HeadHunterAPI()
+    json_saver = JSONSaver()
 
-    @property
-    @abstractmethod
-    def price(self) -> float:
-        pass
+    while True:
+        print("--- Меню ---")
+        print("1. Найти вакансии по ключевому слову и вывести их")
+        print("2. Показать топ N вакансий по зарплате")
+        print("3. Найти вакансии по ключевому слову в описании")
+        print("4. Удалить вакансию")
+        print("5. Выйти")
+        choice = input("Выберите действие: ")
 
-    @price.setter
-    @abstractmethod
-    def price(self, value: float) -> None:
-        pass
+        if choice == "1":
+            # Поиск вакансий по ключевому слову и вывод результатов
+            query = input("Введите поисковый запрос: ")
+            hh_vacancies = hh_api.get_vacancies(query)
 
-    @abstractmethod
-    def __str__(self) -> str:
-        pass
+            # Преобразование данных в объекты Vacancy и вывод
+            vacancies = [
+                Vacancy(
+                    name=v['name'],
+                    url=v['alternate_url'],
+                    salary=v['salary']['from'] if v['salary'] and 'from' in v['salary'] else "Зарплата не указана",
+                    description=v['snippet']['requirement'] if v['snippet'] and 'requirement' in v[
+                        'snippet'] else "Описание отсутствует"
+                )
+                for v in hh_vacancies
+            ]
 
+            # Сохранение вакансий в JSON-файл
+            for vacancy in vacancies:
+                json_saver.add_vacancy(vacancy)
+            print("Вакансии добавлены в JSON файл.\n")
 
-class MixinLog:
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        print(f"Создан объект класса {self.__class__.__name__} с параметрами: {args}, {kwargs}")
+            # Вывод вакансий
+            print("Найденные вакансии:")
+            for vacancy in vacancies:
+                print(f"Название: {vacancy.name}")
+                print(f"Ссылка: {vacancy.url}")
+                print(f"Зарплата: {vacancy.salary}")
+                print(f"Описание: {vacancy.description}\n")
+                print("=" * 40)
 
+        elif choice == "2":
+            # Показать топ N вакансий по зарплате
+            try:
+                top_n = int(input("Введите количество вакансий для отображения: "))
+            except ValueError:
+                print("Введите корректное число.")
+                continue
 
-class Product(MixinLog, BaseProduct):
-    product_count = 0
+            vacancies = json_saver.get_vacancies()
+            if not vacancies:
+                print("Нет вакансий для отображения.")
+                continue
 
-    def __init__(self, name: str, description: str, price: float, quantity: int):
-        super().__init__(name, description, price, quantity)
-        Product.product_count += 1
+            # Сортируем вакансии по зарплате и выводим топ N
+            sorted_vacancies = sorted(
+                vacancies,
+                key=lambda x: x.get('salary', 0) if isinstance(x.get('salary'), (int, float)) else 0,
+                reverse=True
+            )[:top_n]
 
-    @property
-    def price(self) -> float:
-        return self._price
+            for vacancy in sorted_vacancies:
+                print(f"Название: {vacancy['name']}")
+                print(f"Ссылка: {vacancy['url']}")
+                print(f"Зарплата: {vacancy['salary']}")
+                print(f"Описание: {vacancy['description']}")
+                print("=" * 40)
 
-    @price.setter
-    def price(self, value: float) -> None:
-        if value <= 0:
-            print("Цена не должна быть нулевая или отрицательная")
+        elif choice == "3":
+            # Найти вакансии по ключевому слову в описании
+            keyword = input("Введите ключевое слово для поиска в описании: ")
+            vacancies = json_saver.get_vacancies()
+            filtered_vacancies = [v for v in vacancies if keyword.lower() in v['description'].lower()]
+
+            if filtered_vacancies:
+                for vacancy in filtered_vacancies:
+                    print(f"Название: {vacancy['name']}")
+                    print(f"Ссылка: {vacancy['url']}")
+                    print(f"Зарплата: {vacancy['salary']}")
+                    print(f"Описание: {vacancy['description']}")
+                    print("=" * 40)
+            else:
+                print("Вакансий с таким ключевым словом в описании не найдено.")
+
+        elif choice == "4":
+            # Удалить вакансию по названию
+            vacancy_name = input("Введите название вакансии для удаления: ")
+            json_saver.delete_vacancy(vacancy_name)
+            print("Вакансия удалена.")
+
+        elif choice == "5":
+            # Выход из программы
+            print("Выход из программы.")
+            break
         else:
-            self._price = value
-
-    @classmethod
-    def new_product(cls, product_info: dict) -> "Product":
-        return cls(product_info["name"], product_info["description"], product_info["price"], product_info["quantity"])
-
-    def __str__(self) -> str:
-        return f"{self.name}, {self.price} руб. Остаток: {self.quantity} шт."
-
-    def add(self, other: "Product") -> float:
-        if not isinstance(other, Product):
-            raise TypeError("Можно складывать только объекты класса Product")
-        return (self.price * self.quantity) + (other.price * other.quantity)
-
-
-class Smartphone(Product):
-    def __init__(
-        self,
-        name: str,
-        description: str,
-        price: float,
-        quantity: int,
-        efficiency: float,
-        model: str,
-        memory: int,
-        color: str,
-    ):
-        super().__init__(name, description, price, quantity)
-        self.efficiency = efficiency
-        self.model = model
-        self.memory = memory
-        self.color = color
-
-    def __str__(self) -> str:
-        return f"{super().__str__()}\nХарактеристики: Эффективность: {self.efficiency}%, Модель: {self.model}, Память: {self.memory} Гб, Цвет: {self.color}"
-
-
-class LawnGrass(Product):
-    def __init__(
-        self,
-        name: str,
-        description: str,
-        price: float,
-        quantity: int,
-        country: str,
-        germination_period: str,
-        color: str,
-    ):
-        super().__init__(name, description, price, quantity)
-        self.country = country
-        self.germination_period = germination_period
-        self.color = color
-
-    def __str__(self) -> str:
-        return f"{super().__str__()}\nХарактеристики: Страна: {self.country}, Период прорастания: {self.germination_period}, Цвет: {self.color}"
-
-
-class Category:
-    category_count = 0
-    product_count = 0
-
-    def __init__(self, name: str, description: str, products: list["Product"] = None):
-        self.name = name
-        self.description = description
-        self.__products = products if products else []
-        self.product_count = len(self.__products)
-        Category.category_count += 1
-
-    def add_product(self, product: Product) -> None:
-        if isinstance(product, Product):
-            self.__products.append(product)
-            Category.product_count += 1
-        else:
-            raise TypeError("Not a product")
-
-    @property
-    def products(self) -> list[str]:
-        return [f"{product.name}, {product.price} руб. Остаток: {product.quantity} шт." for product in self.__products]
-
-    def __str__(self) -> str:
-        return f"{self.name}, количество продуктов: {Category.product_count} шт."
-
-    def middle_price(self) -> float:
-        try:
-            total_price = sum([product.price for product in self.__products])
-            avg = total_price / len(self.__products)
-            return avg
-        except ZeroDivisionError:
-            return 0
+            print("Некорректный выбор, попробуйте снова.")
 
 
 if __name__ == "__main__":
-    try:
-        product_invalid = Product("Бракованный товар", "Неверное количество", 1000.0, 0)
-    except ValueError as e:
-        print(
-            "Возникла ошибка ValueError прерывающая работу программы при попытке добавить продукт с нулевым количеством"
-        )
-    else:
-        print("Не возникла ошибка ValueError при попытке добавить продукт с нулевым количеством")
-
-    product1 = Product("Samsung Galaxy S23 Ultra", "256GB, Серый цвет, 200MP камера", 180000.0, 5)
-    product2 = Product("Iphone 15", "512GB, Gray space", 210000.0, 8)
-    product3 = Product("Xiaomi Redmi Note 11", "1024GB, Синий", 31000.0, 14)
-
-    category1 = Category("Смартфоны", "Категория смартфонов", [product1, product2, product3])
-
-    print(category1.middle_price())
-
-    category_empty = Category("Пустая категория", "Категория без продуктов", [])
-    print(category_empty.middle_price())
+    user_interaction()
